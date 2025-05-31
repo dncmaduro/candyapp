@@ -1,15 +1,9 @@
 {
   "name": "candyapp",
   "version": "1.0.0",
-  "description": "Private app for canculate orders",
+  "description": "Private app for calculate orders",
   "author": "Dũng Trần Mạnh",
   "main": "electron/dist/main.js",
-  "directories": {
-    "output": "dist-electron"
-  },
-  "win": {
-    "target": "nsis"
-  },
   "scripts": {
     "build:frontend": "cd frontend && npm install && npm run build",
     "build:backend": "cd backend && npm install && npm run build",
@@ -20,6 +14,24 @@
     "dev:frontend": "cd frontend && npm run dev",
     "dev:backend": "cd backend && npm run start:dev",
     "dev:electron": "cd electron && ts-node main.ts"
+  },
+  "build": {
+    "appId": "com.candy.app",
+    "productName": "CandyApp",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "frontend/dist/**/*",
+      "backend/dist/**/*",
+      "electron/dist/**/*"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "publish": {
+      "provider": "github"
+    }
   },
   "devDependencies": {
     "concurrently": "^8.0.0",
