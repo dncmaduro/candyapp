@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Private app for canculate orders",
   "author": "Dũng Trần Mạnh",
+  "main": "electron/main.js",
   "scripts": {
     "build:frontend": "cd frontend && npm install && npm run build",
     "build:backend": "cd backend && npm install && npm run build",
