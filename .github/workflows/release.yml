@@ -1,0 +1,47 @@
+name: Build & Release Electron App for Windows
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-electron:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 22
+
+      - name: Install deps (root + FE + BE)
+        run: |
+          npm install
+          cd frontend && npm install
+          cd ../backend && npm install
+
+      - name: Inject production .env
+        run: |
+          echo "VITE_API_URL=${{ secrets.FRONTEND_API_URL }}" > frontend/.env.production
+          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" > backend/.env.production
+          echo "PORT=${{ secrets.PORT }}" >> backend/.env.production
+          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> backend/.env.production
+
+      - name: Build frontend & backend
+        run: |
+          npm run build:frontend
+          npm run build:backend
+
+      - name: Build Electron App
+        run: npm run build:electron
+
+      - name: Upload .exe to Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: 'Release ${{ github.run_number }}'
+          tag_name: 'v${{ github.run_number }}'
+          files: dist-electron/*.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
