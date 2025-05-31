@@ -4,6 +4,12 @@
   "description": "Private app for canculate orders",
   "author": "Dũng Trần Mạnh",
   "main": "electron/dist/main.js",
+  "directories": {
+    "output": "dist-electron"
+  },
+  "win": {
+    "target": "nsis"
+  },
   "scripts": {
     "build:frontend": "cd frontend && npm install && npm run build",
     "build:backend": "cd backend && npm install && npm run build",
