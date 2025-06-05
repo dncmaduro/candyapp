@@ -62,7 +62,7 @@ const waitForFrontend = (timeout = 10000): Promise<void> => {
 
 app.whenReady().then(async () => {
   // Khởi backend Nest
-  nestProcess = spawn('node', ['dist/main.js'], {
+  nestProcess = spawn(process.execPath, ['dist/main.js'], {
     cwd: path.join(__dirname, '../../backend'),
     stdio: 'inherit',
   });
