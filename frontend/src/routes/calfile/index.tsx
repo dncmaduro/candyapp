@@ -57,7 +57,7 @@ function RouteComponent() {
   })
 
   const fileDialog = useFileDialog({
-    accept: ".xlsx",
+    accept: ".xlsx, .xls",
     multiple: false,
     onChange: (files) => setFile(files ? files[0] : null)
   })
