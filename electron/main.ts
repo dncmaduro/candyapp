@@ -1,15 +1,17 @@
 import { app, BrowserWindow } from 'electron';
 import path from 'path';
-import { spawn } from 'child_process';
+import { spawn, ChildProcess } from 'child_process';
 import http from 'http';
 import dotenv from 'dotenv';
 
 dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
 
-let nestProcess: any;
+let nestProcess: ChildProcess | null = null;
+let mainWindow: BrowserWindow | null = null;
+let isQuitting = false;
 
 const createWindow = () => {
-  const win = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
     webPreferences: {
@@ -20,23 +22,23 @@ const createWindow = () => {
 
   // Dev mode
   if (process.env.NODE_ENV === 'development') {
-    win.loadURL('http://localhost:8386');
+    mainWindow.loadURL('http://localhost:8386');
   } else {
-    win.loadFile(path.join(__dirname, '../../frontend/dist/index.html'));
+    mainWindow.loadFile(path.join(__dirname, '../../frontend/dist/index.html'));
   }
 
-  // win.loadURL('http://localhost:8386');
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
 };
 
 const waitForFrontend = (timeout = 10000): Promise<void> => {
-  // Poll mỗi 500ms, timeout sau 10s
   return new Promise((resolve, reject) => {
     const start = Date.now();
     const check = () => {
       const req = http.request(
         { hostname: 'localhost', port: 8386, path: '/', method: 'GET', timeout: 1000 },
         (res) => {
-          // Nếu server trả code 200||301||302, coi như sẵn sàng
           if ([200, 301, 302].includes(res.statusCode || 0)) {
             res.destroy();
             resolve();
@@ -50,7 +52,7 @@ const waitForFrontend = (timeout = 10000): Promise<void> => {
 
       function retry() {
         if (Date.now() - start > timeout) {
-          reject(new Error('Timeout khi chờ frontend ở port 8386'));
+          reject(new Error('Timeout waiting for frontend on port 8386'));
         } else {
           setTimeout(check, 500);
         }
@@ -60,6 +62,7 @@ const waitForFrontend = (timeout = 10000): Promise<void> => {
   });
 };
 
+// Function to forcefully terminate the backend process
 const terminateBackendProcess = () => {
   if (nestProcess) {
     console.log('Terminating backend process...');
@@ -110,7 +113,7 @@ app.whenReady().then(async () => {
       app.quit();
     });
 
-    nestProcess.on('exit', (code, signal) => {
+    nestProcess.on('exit', (code: number | null, signal: string | null) => {
       console.log(`Backend process exited with code ${code} and signal ${signal}`);
       nestProcess = null;
 
