@@ -61,14 +61,32 @@ const waitForFrontend = (timeout = 10000): Promise<void> => {
 };
 
 app.whenReady().then(async () => {
-  // Khởi backend Nest
-  nestProcess = spawn(process.execPath, ['dist/main.js'], {
-    cwd: path.join(__dirname, '../../backend'),
-    stdio: 'inherit',
-  });
+  // Fix: Determine the correct path for backend based on environment
+  const isPackaged = app.isPackaged;
+  const backendPath = isPackaged
+    ? path.join(process.resourcesPath, 'app', 'backend')
+    : path.join(__dirname, '../../backend');
+
+  console.log('Backend path:', backendPath);
+
+  // Start the backend process with proper error handling
+  try {
+    nestProcess = spawn(process.execPath, ['dist/main.js'], {
+      cwd: backendPath,
+      stdio: 'inherit',
+    });
+
+    nestProcess.on('error', (err: Error) => {
+      console.error('Failed to start backend process:', err);
+      app.quit();
+    });
+  } catch (err) {
+    console.error('Error spawning backend process:', err);
+    app.quit();
+  }
 
   try {
-    await waitForFrontend(15000); // timeout 15s
+    await waitForFrontend(15000);
     createWindow();
   } catch (err) {
     console.error(err);

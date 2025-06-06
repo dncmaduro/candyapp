@@ -26,6 +26,12 @@
       "backend/dist/**/*",
       "electron/dist/**/*"
     ],
+    "extraResources": [
+      {
+        "from": "backend/dist",
+        "to": "app/backend/dist"
+      }
+    ],
     "win": {
       "target": "nsis"
     },
