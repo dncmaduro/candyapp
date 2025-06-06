@@ -47,52 +47,53 @@ const createWindow = () => {
     logger('Loading development URL');
     mainWindow.loadURL('http://localhost:8386');
   } else {
-    // Fix for packaged app - use the correct path for frontend files
-    let frontendPath;
-    if (app.isPackaged) {
-      // In packaged app, the frontend files should be in the resources directory
-      frontendPath = path.join(process.resourcesPath, 'frontend', 'dist', 'index.html');
-    } else {
-      frontendPath = path.join(__dirname, '../../frontend/dist/index.html');
+    // Try multiple potential locations for frontend files
+    const possiblePaths = [
+      // Standard path in packaged app
+      path.join(process.resourcesPath, 'frontend', 'dist', 'index.html'),
+      // Alternative path based on extraResources configuration
+      path.join(app.getAppPath(), '..', 'frontend', 'dist', 'index.html'),
+      // Path relative to executable
+      path.join(app.getAppPath(), 'frontend', 'dist', 'index.html'),
+      // Development path
+      path.join(__dirname, '../../frontend/dist/index.html'),
+    ];
+
+    let frontendLoaded = false;
+
+    // Try each path until we find one that exists
+    for (const frontendPath of possiblePaths) {
+      logger(`Trying frontend path: ${frontendPath}`);
+
+      if (fs.existsSync(frontendPath)) {
+        logger(`Found frontend at: ${frontendPath}`);
+        mainWindow
+          .loadFile(frontendPath)
+          .then(() => {
+            frontendLoaded = true;
+            logger('Frontend loaded successfully');
+          })
+          .catch((err) => {
+            logger(`Error loading frontend from ${frontendPath}: ${err.message}`);
+          });
+        break;
+      } else {
+        logger(`Path not found: ${frontendPath}`);
+      }
     }
 
-    logger(`Loading frontend from: ${frontendPath}`);
-
-    // Check if the file exists before trying to load it
-    try {
-      if (fs.existsSync(frontendPath)) {
-        logger('Frontend file exists, loading...');
-        mainWindow.loadFile(frontendPath).catch((err) => {
-          logger(`Failed to load frontend: ${err.message}`);
-          dialog.showErrorBox(
-            'Startup Error',
-            `Failed to load application frontend: ${err.message}`,
-          );
-        });
-      } else {
-        logger('ERROR: Frontend file does not exist!');
-        dialog.showErrorBox(
-          'Frontend Not Found',
-          `The application frontend could not be found at: ${frontendPath}`,
-        );
-
-        // Try loading from an alternative location as fallback
-        const altPath = path.join(app.getAppPath(), 'frontend/dist/index.html');
-        logger(`Trying alternative path: ${altPath}`);
-
-        if (fs.existsSync(altPath)) {
-          mainWindow.loadFile(altPath);
-        } else {
-          // Show a minimal HTML as a last resort
-          mainWindow.loadURL(
-            'data:text/html,<html><body><h2>Application Error</h2><p>Frontend files not found.</p></body></html>',
-          );
-        }
-      }
-    } catch (err) {
-      logger(`Error checking frontend file: ${err}`);
+    // If no path worked, show error page
+    if (!frontendLoaded) {
+      logger('No valid frontend path found, showing error page');
       mainWindow.loadURL(
-        'data:text/html,<html><body><h2>Application Error</h2><p>Frontend files not found.</p></body></html>',
+        'data:text/html,<html><body style="font-family: sans-serif; padding: 2rem;"><h2>Application Error</h2><p>Frontend files not found.</p><pre>Searched paths:\n' +
+          possiblePaths.join('\n') +
+          '</pre></body></html>',
+      );
+
+      dialog.showErrorBox(
+        'Frontend Not Found',
+        'The application frontend files could not be found. Please reinstall the application.',
       );
     }
   }
@@ -106,11 +107,6 @@ const createWindow = () => {
       startupTimeout = null;
     }
   });
-
-  // Add developer tools in non-packaged mode
-  if (!app.isPackaged) {
-    mainWindow.webContents.openDevTools();
-  }
 
   mainWindow.on('closed', () => {
     logger('Main window closed');

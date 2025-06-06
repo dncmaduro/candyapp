@@ -15,32 +15,32 @@
     "dev:backend": "cd backend && npm run start:dev",
     "dev:electron": "cd electron && cross-env NODE_ENV=development npx tsc -p tsconfig.electron.json && electron dist/main.js"
   },
-  "build": {
-    "appId": "com.candy.app",
-    "productName": "CandyApp",
-    "directories": {
-      "output": "dist-electron"
-    },
-    "files": [
-      "electron/dist/**/*"
-    ],
-    "extraResources": [
-      {
-        "from": "backend/dist",
-        "to": "app/backend/dist"
-      },
-      {
-        "from": "frontend/dist",
-        "to": "frontend/dist"
-      }
-    ],
-    "win": {
-      "target": "nsis"
-    },
-    "publish": {
-      "provider": "github"
-    }
+ "build": {
+  "appId": "com.candy.app",
+  "productName": "CandyApp",
+  "directories": {
+    "output": "dist-electron"
   },
+  "files": [
+    "electron/dist/**/*"
+  ],
+  "extraResources": [
+    {
+      "from": "backend/dist",
+      "to": "app/backend/dist"
+    },
+    {
+      "from": "frontend/dist",
+      "to": "frontend/dist"
+    }
+  ],
+  "win": {
+    "target": "nsis"
+  },
+  "publish": {
+    "provider": "github"
+  }
+},
   "dependencies": {
     "dotenv": "^16.5.0"
   },
