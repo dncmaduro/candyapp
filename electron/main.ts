@@ -47,13 +47,17 @@ const createWindow = () => {
     logger('Loading development URL');
     mainWindow.loadURL('http://localhost:8386');
   } else {
+    logger(`Resources path: ${process.resourcesPath}`);
+    logger(`App path: ${app.getAppPath()}`);
+    logger(`Looking for frontend files...`);
+
     // Try multiple potential locations for frontend files
     const possiblePaths = [
-      // Standard path in packaged app
+      // Standard path in packaged app (updated)
+      path.join(process.resourcesPath, 'app', 'frontend', 'dist', 'index.html'),
+      // Previous locations for fallback
       path.join(process.resourcesPath, 'frontend', 'dist', 'index.html'),
-      // Alternative path based on extraResources configuration
       path.join(app.getAppPath(), '..', 'frontend', 'dist', 'index.html'),
-      // Path relative to executable
       path.join(app.getAppPath(), 'frontend', 'dist', 'index.html'),
       // Development path
       path.join(__dirname, '../../frontend/dist/index.html'),

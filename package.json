@@ -31,7 +31,7 @@
     },
     {
       "from": "frontend/dist",
-      "to": "frontend/dist"
+      "to": "app/frontend/dist"
     }
   ],
   "win": {
