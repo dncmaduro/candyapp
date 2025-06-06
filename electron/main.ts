@@ -26,6 +26,9 @@ const logger = (message: string) => {
 };
 
 logger(`App starting - version ${app.getVersion()}`);
+logger(`User data path: ${app.getPath('userData')}`);
+logger(`App path: ${app.getAppPath()}`);
+logger(`__dirname: ${__dirname}`);
 
 const createWindow = () => {
   logger('Creating main window');
@@ -44,12 +47,54 @@ const createWindow = () => {
     logger('Loading development URL');
     mainWindow.loadURL('http://localhost:8386');
   } else {
-    const frontendPath = path.join(__dirname, '../../frontend/dist/index.html');
+    // Fix for packaged app - use the correct path for frontend files
+    let frontendPath;
+    if (app.isPackaged) {
+      // In packaged app, the frontend files should be in the resources directory
+      frontendPath = path.join(process.resourcesPath, 'frontend', 'dist', 'index.html');
+    } else {
+      frontendPath = path.join(__dirname, '../../frontend/dist/index.html');
+    }
+
     logger(`Loading frontend from: ${frontendPath}`);
-    mainWindow.loadFile(frontendPath).catch((err) => {
-      logger(`Failed to load frontend: ${err.message}`);
-      dialog.showErrorBox('Startup Error', `Failed to load application frontend: ${err.message}`);
-    });
+
+    // Check if the file exists before trying to load it
+    try {
+      if (fs.existsSync(frontendPath)) {
+        logger('Frontend file exists, loading...');
+        mainWindow.loadFile(frontendPath).catch((err) => {
+          logger(`Failed to load frontend: ${err.message}`);
+          dialog.showErrorBox(
+            'Startup Error',
+            `Failed to load application frontend: ${err.message}`,
+          );
+        });
+      } else {
+        logger('ERROR: Frontend file does not exist!');
+        dialog.showErrorBox(
+          'Frontend Not Found',
+          `The application frontend could not be found at: ${frontendPath}`,
+        );
+
+        // Try loading from an alternative location as fallback
+        const altPath = path.join(app.getAppPath(), 'frontend/dist/index.html');
+        logger(`Trying alternative path: ${altPath}`);
+
+        if (fs.existsSync(altPath)) {
+          mainWindow.loadFile(altPath);
+        } else {
+          // Show a minimal HTML as a last resort
+          mainWindow.loadURL(
+            'data:text/html,<html><body><h2>Application Error</h2><p>Frontend files not found.</p></body></html>',
+          );
+        }
+      }
+    } catch (err) {
+      logger(`Error checking frontend file: ${err}`);
+      mainWindow.loadURL(
+        'data:text/html,<html><body><h2>Application Error</h2><p>Frontend files not found.</p></body></html>',
+      );
+    }
   }
 
   // Show window when ready
@@ -61,6 +106,11 @@ const createWindow = () => {
       startupTimeout = null;
     }
   });
+
+  // Add developer tools in non-packaged mode
+  if (!app.isPackaged) {
+    mainWindow.webContents.openDevTools();
+  }
 
   mainWindow.on('closed', () => {
     logger('Main window closed');

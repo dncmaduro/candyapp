@@ -22,14 +22,16 @@
       "output": "dist-electron"
     },
     "files": [
-      "frontend/dist/**/*",
-      "backend/dist/**/*",
       "electron/dist/**/*"
     ],
     "extraResources": [
       {
         "from": "backend/dist",
         "to": "app/backend/dist"
+      },
+      {
+        "from": "frontend/dist",
+        "to": "frontend/dist"
       }
     ],
     "win": {
