@@ -60,6 +60,34 @@ const waitForFrontend = (timeout = 10000): Promise<void> => {
   });
 };
 
+const terminateBackendProcess = () => {
+  if (nestProcess) {
+    console.log('Terminating backend process...');
+
+    // On Windows, use taskkill to terminate process tree
+    if (process.platform === 'win32' && nestProcess.pid) {
+      try {
+        spawn('taskkill', ['/pid', nestProcess.pid.toString(), '/f', '/t']);
+      } catch (e) {
+        console.error('Failed to kill process with taskkill:', e);
+      }
+    }
+
+    try {
+      nestProcess.kill('SIGTERM');
+      setTimeout(() => {
+        if (nestProcess) {
+          nestProcess.kill('SIGKILL');
+        }
+      }, 1000);
+    } catch (e) {
+      console.error('Error killing backend process:', e);
+    }
+
+    nestProcess = null;
+  }
+};
+
 app.whenReady().then(async () => {
   // Fix: Determine the correct path for backend based on environment
   const isPackaged = app.isPackaged;
@@ -74,11 +102,21 @@ app.whenReady().then(async () => {
     nestProcess = spawn(process.execPath, ['dist/main.js'], {
       cwd: backendPath,
       stdio: 'inherit',
+      detached: false, // Ensure process isn't detached
     });
 
     nestProcess.on('error', (err: Error) => {
       console.error('Failed to start backend process:', err);
       app.quit();
+    });
+
+    nestProcess.on('exit', (code, signal) => {
+      console.log(`Backend process exited with code ${code} and signal ${signal}`);
+      nestProcess = null;
+
+      if (!isQuitting && mainWindow) {
+        app.quit();
+      }
     });
   } catch (err) {
     console.error('Error spawning backend process:', err);
@@ -93,8 +131,40 @@ app.whenReady().then(async () => {
     app.quit();
   }
 
+  // Handle application lifecycle events
   app.on('window-all-closed', () => {
-    if (nestProcess) nestProcess.kill();
-    if (process.platform !== 'darwin') app.quit();
+    if (process.platform !== 'darwin') {
+      app.quit();
+    }
   });
+
+  app.on('before-quit', (event) => {
+    console.log('App is quitting...');
+    isQuitting = true;
+
+    if (nestProcess) {
+      event.preventDefault(); // Prevent immediate quit
+      terminateBackendProcess();
+
+      // Continue quitting after a delay
+      setTimeout(() => {
+        if (mainWindow) {
+          mainWindow.destroy();
+        }
+        app.exit(0); // Use exit instead of quit to force close
+      }, 1500);
+    }
+  });
+
+  app.on('quit', () => {
+    console.log('App quit event fired');
+    terminateBackendProcess();
+  });
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught exception:', error);
+  terminateBackendProcess();
+  app.exit(0);
 });
